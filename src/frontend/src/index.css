@@ -1,0 +1,71 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.75rem;
+
+    /* Green Empire Nursery palette in OKLCH */
+    /* Background: very light mint #E7F0EC */
+    --background: 0.955 0.018 152;
+    /* Foreground: dark text #0F1F1A */
+    --foreground: 0.18 0.03 155;
+    /* Card: white */
+    --card: 1 0 0;
+    --card-foreground: 0.18 0.03 155;
+    --popover: 1 0 0;
+    --popover-foreground: 0.18 0.03 155;
+    /* Primary: deep forest green #1F3D33 */
+    --primary: 0.28 0.07 160;
+    --primary-foreground: 0.98 0 0;
+    /* Secondary */
+    --secondary: 0.92 0.025 152;
+    --secondary-foreground: 0.28 0.07 160;
+    /* Muted: #5F6F68 */
+    --muted: 0.93 0.018 152;
+    --muted-foreground: 0.52 0.04 160;
+    /* Accent */
+    --accent: 0.92 0.025 152;
+    --accent-foreground: 0.28 0.07 160;
+    /* Destructive */
+    --destructive: 0.577 0.245 27.325;
+    --destructive-foreground: 0.985 0 0;
+    /* Border: #D7E1DC */
+    --border: 0.89 0.022 152;
+    --input: 0.89 0.022 152;
+    --ring: 0.28 0.07 160;
+    /* Gold for stars: #D6A84A */
+    --star: 0.76 0.14 75;
+    /* Chart */
+    --chart-1: 0.646 0.222 41.116;
+    --chart-2: 0.6 0.118 184.704;
+    --chart-3: 0.398 0.07 227.392;
+    --chart-4: 0.828 0.189 84.429;
+    --chart-5: 0.769 0.188 70.08;
+    --sidebar: 0.985 0 0;
+    --sidebar-foreground: 0.18 0.03 155;
+    --sidebar-primary: 0.28 0.07 160;
+    --sidebar-primary-foreground: 0.98 0 0;
+    --sidebar-accent: 0.92 0.025 152;
+    --sidebar-accent-foreground: 0.28 0.07 160;
+    --sidebar-border: 0.89 0.022 152;
+    --sidebar-ring: 0.28 0.07 160;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Inter", sans-serif;
+    scroll-behavior: smooth;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
