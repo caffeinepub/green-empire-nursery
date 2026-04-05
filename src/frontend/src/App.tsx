@@ -1,3 +1,4 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CheckCircle2,
   ChevronRight,
@@ -5,6 +6,7 @@ import {
   Heart,
   Instagram,
   Leaf,
+  Loader2,
   Mail,
   MapPin,
   Menu,
@@ -17,6 +19,8 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
+import type { Review } from "./backend";
+import { useActor } from "./hooks/useActor";
 
 const WA_LINK = "https://wa.me/918524932135";
 
@@ -124,27 +128,6 @@ const CARE_TIPS = [
   },
 ];
 
-const REVIEWS = [
-  {
-    name: "Priya S.",
-    location: "Chennai",
-    text: "Beautiful plants, great quality! My home looks so much more vibrant now. The money plant I ordered is growing beautifully.",
-    rating: 5,
-  },
-  {
-    name: "Karthik M.",
-    location: "Tamil Nadu",
-    text: "My terrarium is absolutely stunning. The customization was perfect and it arrived safely packed. Highly recommend!",
-    rating: 5,
-  },
-  {
-    name: "Anjali R.",
-    location: "Coimbatore",
-    text: "Very affordable and fast delivery! Ordered 3 plants and they all arrived healthy. Will definitely order again.",
-    rating: 5,
-  },
-];
-
 const STARS = [1, 2, 3, 4, 5];
 const LOGO_SRC =
   "/assets/file_000000001a5071fa824b913a18c97ce1-019d5741-18d3-7592-b394-7589925755a2.png";
@@ -200,11 +183,26 @@ function InteractiveStarRating({
   );
 }
 
+function useReviews() {
+  const { actor, isFetching } = useActor();
+  return useQuery<Review[]>({
+    queryKey: ["reviews"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getReviews();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
 export default function App() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const queryClient = useQueryClient();
+
+  // Backend reviews
+  const { data: reviews = [], isLoading: reviewsLoading } = useReviews();
 
   // Review form state
-  const [userReviews, setUserReviews] = useState<typeof REVIEWS>([]);
   const [reviewName, setReviewName] = useState("");
   const [reviewLocation, setReviewLocation] = useState("");
   const [reviewText, setReviewText] = useState("");
@@ -213,7 +211,37 @@ export default function App() {
   const [reviewSuccess, setReviewSuccess] = useState(false);
   const [reviewError, setReviewError] = useState("");
 
-  const allReviews = [...REVIEWS, ...userReviews];
+  const { actor } = useActor();
+
+  const submitMutation = useMutation({
+    mutationFn: async ({
+      name,
+      location,
+      text,
+      rating,
+    }: {
+      name: string;
+      location: string;
+      text: string;
+      rating: number;
+    }) => {
+      if (!actor) throw new Error("Not ready");
+      return actor.submitReview(name, location, text, BigInt(rating));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reviews"] });
+      setReviewName("");
+      setReviewLocation("");
+      setReviewText("");
+      setReviewRating(0);
+      setReviewHovered(0);
+      setReviewSuccess(true);
+      setTimeout(() => setReviewSuccess(false), 4000);
+    },
+    onError: () => {
+      setReviewError("Something went wrong. Please try again.");
+    },
+  });
 
   const scrollTo = (href: string) => {
     setMobileOpen(false);
@@ -236,22 +264,12 @@ export default function App() {
       return;
     }
     setReviewError("");
-    setUserReviews((prev) => [
-      ...prev,
-      {
-        name: reviewName.trim(),
-        location: reviewLocation.trim() || "India",
-        text: reviewText.trim(),
-        rating: reviewRating,
-      },
-    ]);
-    setReviewName("");
-    setReviewLocation("");
-    setReviewText("");
-    setReviewRating(0);
-    setReviewHovered(0);
-    setReviewSuccess(true);
-    setTimeout(() => setReviewSuccess(false), 4000);
+    submitMutation.mutate({
+      name: reviewName.trim(),
+      location: reviewLocation.trim() || "India",
+      text: reviewText.trim(),
+      rating: reviewRating,
+    });
   };
 
   return (
@@ -672,42 +690,67 @@ export default function App() {
                 Testimonials
               </span>
               <h2 className="text-3xl sm:text-4xl font-black text-foreground mt-2">
-                Happy Customers ⭐ ({allReviews.length})
+                Happy Customers ⭐ ({reviews.length})
               </h2>
             </div>
 
             {/* Review Cards */}
-            <div className="grid md:grid-cols-3 gap-6">
-              {allReviews.map((review, i) => (
-                <motion.div
-                  key={`${review.name}-${i}`}
-                  data-ocid={`reviews.item.${i + 1}`}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: Math.min(i, 2) * 0.1 }}
-                  className="bg-card rounded-2xl p-6 border border-border shadow-card"
-                >
-                  <StarRating count={review.rating} />
-                  <p className="text-foreground text-sm leading-relaxed mt-4 mb-5">
-                    &ldquo;{review.text}&rdquo;
-                  </p>
-                  <div className="flex items-center gap-3 pt-4 border-t border-border">
-                    <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center font-bold text-primary">
-                      {review.name[0]}
+            {reviewsLoading ? (
+              <div
+                className="flex flex-col items-center justify-center py-16 gap-3"
+                data-ocid="reviews.loading_state"
+              >
+                <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                <p className="text-muted-foreground text-sm">
+                  Loading reviews...
+                </p>
+              </div>
+            ) : reviews.length === 0 ? (
+              <div
+                className="text-center py-16 text-muted-foreground"
+                data-ocid="reviews.empty_state"
+              >
+                <div className="text-5xl mb-4">🌱</div>
+                <p className="font-semibold text-foreground text-lg">
+                  No reviews yet
+                </p>
+                <p className="text-sm mt-1">
+                  Be the first to share your experience!
+                </p>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-3 gap-6">
+                {reviews.map((review, i) => (
+                  <motion.div
+                    key={`${review.name}-${i}`}
+                    data-ocid={`reviews.item.${i + 1}`}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: Math.min(i, 2) * 0.1 }}
+                    className="bg-card rounded-2xl p-6 border border-border shadow-card"
+                  >
+                    <StarRating count={Number(review.rating)} />
+                    <p className="text-foreground text-sm leading-relaxed mt-4 mb-5">
+                      &ldquo;{review.text}&rdquo;
+                    </p>
+                    <div className="flex items-center gap-3 pt-4 border-t border-border">
+                      <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center font-bold text-primary">
+                        {review.name[0]}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-sm text-foreground">
+                          {review.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {review.location}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-semibold text-sm text-foreground">
-                        {review.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {review.location}
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
 
             {/* Review Submission Form */}
             <motion.div
@@ -851,10 +894,20 @@ export default function App() {
                 <button
                   type="submit"
                   data-ocid="review_form.submit_button"
-                  className="w-full py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:opacity-90 transition-opacity text-sm flex items-center justify-center gap-2"
+                  disabled={submitMutation.isPending}
+                  className="w-full py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:opacity-90 transition-opacity text-sm flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <Star className="w-4 h-4" />
-                  Submit Review
+                  {submitMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Star className="w-4 h-4" />
+                      Submit Review
+                    </>
+                  )}
                 </button>
               </form>
             </motion.div>

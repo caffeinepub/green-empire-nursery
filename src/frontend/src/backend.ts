@@ -89,10 +89,47 @@ export class ExternalBlob {
         return this;
     }
 }
+export interface Review {
+    name: string;
+    text: string;
+    timestamp: bigint;
+    rating: bigint;
+    location: string;
+}
 export interface backendInterface {
+    getReviews(): Promise<Array<Review>>;
+    submitReview(name: string, location: string, text: string, rating: bigint): Promise<boolean>;
 }
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
+    async getReviews(): Promise<Array<Review>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getReviews();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getReviews();
+            return result;
+        }
+    }
+    async submitReview(arg0: string, arg1: string, arg2: string, arg3: bigint): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.submitReview(arg0, arg1, arg2, arg3);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.submitReview(arg0, arg1, arg2, arg3);
+            return result;
+        }
+    }
 }
 export interface CreateActorOptions {
     agent?: Agent;

@@ -7,5 +7,14 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
+export interface Review {
+    name: string;
+    text: string;
+    timestamp: bigint;
+    rating: bigint;
+    location: string;
+}
 export interface backendInterface {
+    getReviews(): Promise<Array<Review>>;
+    submitReview(name: string, location: string, text: string, rating: bigint): Promise<boolean>;
 }
